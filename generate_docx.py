@@ -343,7 +343,7 @@ def build_resume():
         "Software Testing", "Test Planning", "SDLC & STLC", "Functional Testing",
         "Regression Testing", "UI Testing", "Defect Tracking", "Jira", "Postman",
         "Selenium (Basic)", "Agile / Scrum", "QA Documentation", "API Testing",
-        "Test Case Design",
+        "Test Case Design", "Load Testing", "Stress Testing", "Performance Testing",
     ]
     p = right.add_paragraph()
     set_paragraph_spacing(p, before=2, after=4, line=1.3)
