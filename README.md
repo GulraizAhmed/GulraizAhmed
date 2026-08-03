@@ -6,7 +6,7 @@ Printable HTML resume matching a clean two-column professional layout.
 
 1. Open `index.html` in a browser.
 2. Use **Print → Save as PDF** (A4) for a PDF copy.
-3. Replace the placeholder email, phone, and LinkedIn URL in the grey contact bar before sharing.
+3. Contact details (email, phone, LinkedIn) are already filled in the grey contact bar.
 
 ## Updates in this version
 
