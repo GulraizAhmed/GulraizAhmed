@@ -2,9 +2,9 @@
 """Generate Sadia Ghafoor resume as a .docx file."""
 
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
-from docx.oxml.ns import qn, nsmap
+from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
 
