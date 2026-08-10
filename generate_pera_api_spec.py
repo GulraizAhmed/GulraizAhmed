@@ -147,7 +147,7 @@ def set_header_footer(doc):
         header = section.header
         hp = header.paragraphs[0]
         hp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = hp.add_run("PLRA-DCVAL-API-SPEC-001  |  Version 0.1  |  Restricted  |  PLRA → PERA DC Valuation Rate Interface")
+        run = hp.add_run("PLRA-DCVAL-API-SPEC-001  |  Version 0.2  |  Restricted  |  PLRA → PERA DC Valuation Rate Interface")
         set_run(run, size=8, color=GRAY)
         footer = section.footer
         fp = footer.paragraphs[0]
@@ -208,7 +208,7 @@ def build():
     cover_rows = [
         ("Document Title", "PLRA DC Valuation Rate API Specification for PERA Integration"),
         ("Document Identifier", "PLRA-DCVAL-API-SPEC-001"),
-        ("Version", "0.1"),
+        ("Version", "0.2"),
         ("Document Status", "Draft"),
         ("Security Classification", "Restricted"),
         ("Date of Issue", "10-Aug-2026"),
@@ -237,8 +237,8 @@ def build():
     heading(doc, "0.1 Document Identification", 2)
     kv_table(doc, [
         ("Document Identifier", "PLRA-DCVAL-API-SPEC-001"),
-        ("Current Version", "0.1"),
-        ("Supersedes", "None"),
+        ("Current Version", "0.2"),
+        ("Supersedes", "PLRA-DCVAL-API-SPEC-001 Version 0.1"),
         ("Configuration Item Reference", "CI-PLRA-DCVAL-API-SPEC"),
         ("Repository Location", "PLRA Controlled Document Repository / Integration Library"),
         ("Retention Period", "Per PLRA records retention schedule (minimum 7 years from withdrawal)"),
@@ -251,6 +251,7 @@ def build():
         ["Ver.", "Date", "Author", "Change Reference", "Summary of Change", "Approved By"],
         [
             ["0.1", "10-Aug-2026", "PLRA Integration Team", "INIT-001", "Initial draft for PERA Activity Register DC Valuation integration", "Pending"],
+            ["0.2", "10-Aug-2026", "PLRA Integration Team", "CR-002", "Aligned contracts to Square/Kila fields; added full Property Area valuation (API-10); renamed multi-khasra GetValuationMethod to API-11; standardised valuation response fields (dcRate, structureRate, location, classification, unitOfMeasurement)", "Pending"],
         ],
     )
     add_para(
@@ -528,7 +529,7 @@ def build():
             ["CAP-02", "Administrative Geography Lookup", "Provide District and Tehsil lists for cascading selection.", "API-02, API-03", "High"],
             ["CAP-03", "Urban Parcel Navigation", "Provide Mauza and Khasra lists under a selected Tehsil for Urban land.", "API-04, API-05", "High"],
             ["CAP-04", "Rural Parcel Navigation", "Provide property classification, property area and Khasra lists for Rural land.", "API-06, API-07, API-08", "High"],
-            ["CAP-05", "DC Valuation Rate Retrieval", "Return DC valuation rate(s) for selected Khasra(s), including multi-Khasra Rural responses.", "API-09, API-10", "High"],
+            ["CAP-05", "DC Valuation Rate Retrieval", "Return DC valuation rate(s) for selected Khasra(s) or full Rural Property Area, including multi-Khasra responses (GetValuationMethod).", "API-09, API-10, API-11", "High"],
         ],
     )
 
@@ -540,14 +541,15 @@ def build():
 
     add_para(doc, "Urban path:", size=11, bold=True, space_before=6)
     bullet(doc, "Call Get Mauzas by Tehsil → user selects Mauza.")
-    bullet(doc, "Call Get Khasra Nos by Mauza → user selects a Khasra.")
-    bullet(doc, "Call Get Valuation by Khasra No → PLRA returns DC valuation rate for that Khasra.")
+    bullet(doc, "Call Get Khasra Nos by Mauza → list returns khasraId, khasraNumber, squareId, squareNumber, kilaId, kilaNumber; user selects a Khasra.")
+    bullet(doc, "Call Get Valuation by Khasra No (GetValuationMethod) with khasraId, squareId, kilaId → PLRA returns dcRate, structureRate, location, classification, unitOfMeasurement.")
 
     add_para(doc, "Rural path:", size=11, bold=True, space_before=6)
     bullet(doc, "User selects Property Classification (Residential, Commercial, Agriculture, Industrial) via Get Property Classifications.")
     bullet(doc, "Call Get Property Areas by Tehsil (filtered by classification) → user selects Property Area.")
-    bullet(doc, "Call Get Khasra Nos by Property Area → user may select one or multiple Khasras.")
-    bullet(doc, "Call Get Valuation by Property Area & Khasra No(s) → PLRA returns DC valuation rate(s) for the selected Khasra(s).")
+    bullet(doc, "Option A — Full Property Area: Call Get Valuation by Property Area → PLRA returns dcRate, structureRate, location, classification, unitOfMeasurement.")
+    bullet(doc, "Option B — Khasra/Kila selection: Call Get Khasra / Kila Nos by Property Area → user may select one or multiple Khasras (and related Kilas).")
+    bullet(doc, "Then Call Get Valuation by Property Area & Khasra No(s) (GetValuationMethod) → PLRA returns DC valuation details for each selected Khasra in one response.")
 
     heading(doc, "2.3 Integration Objectives and Success Measures", 2)
     add_table(
@@ -729,7 +731,7 @@ def build():
         [
             ["ADR-01", "REST/JSON over HTTPS via API Gateway", "Accepted", "Fits cascading read UX; aligns with PLRA API standard", "Gateway-enforced security and versioning"],
             ["ADR-02", "Separate Urban (Mauza) and Rural (Property Area) navigation paths", "Accepted", "Matches PERA Activity Register business rules", "Two valuation operations (single vs multi-Khasra)"],
-            ["ADR-03", "Multi-Khasra valuation supported only on Rural path", "Accepted", "PERA Rural use case requires multi-select rates", "API-10 accepts khasraNos array"],
+            ["ADR-03", "Multi-Khasra valuation supported only on Rural path via GetValuationMethod", "Accepted", "PERA Rural use case requires multi-select rates", "API-11 accepts khasras[] with optional squareId/kilaId; API-10 covers full-area valuation"],
             ["ADR-04", "Read-only scopes; no mutation APIs", "Accepted", "Purpose limited to rate lookup", "Reduced attack surface"],
         ],
     )
@@ -767,13 +769,13 @@ def build():
         ["Method", "Applied To", "Safe", "Idempotent", "Typical Success Status"],
         [
             ["GET", "Retrieval of master lists and single valuation lookups", "Yes", "Yes", "200"],
-            ["POST", "Valuation lookup with multi-Khasra body (API-10)", "Yes*", "Yes*", "200"],
+            ["POST", "Valuation lookup with khasra context body (API-09, API-11)", "Yes*", "Yes*", "200"],
         ],
     )
     add_para(
         doc,
-        "* API-10 is treated as a safe, idempotent query that uses POST solely to carry a multi-valued Khasra list in the request body. "
-        "It SHALL NOT mutate Provider state.",
+        "* API-09 and API-11 are treated as safe, idempotent queries that use POST solely to carry "
+        "structured khasra context in the request body. They SHALL NOT mutate Provider state.",
         size=9, italic=True, color=GRAY,
     )
 
@@ -912,7 +914,7 @@ def build():
         ["Scope", "Grants", "Applies To", "Assigned To"],
         [
             ["dcval.read.masters", "Read District, Tehsil, Mauza, Property Area, Classification, Khasra lists", "API-01 to API-08", "PERA Activity Register client"],
-            ["dcval.read.valuation", "Read DC valuation rate(s)", "API-09, API-10", "PERA Activity Register client"],
+            ["dcval.read.valuation", "Read DC valuation rate(s)", "API-09, API-10, API-11", "PERA Activity Register client"],
         ],
     )
     add_para(
@@ -1005,12 +1007,19 @@ def build():
             ["API-05", "Get Khasra Nos by Mauza", "GET", "/dc-valuation/v1/mauzas/{mauzaId}/khasras", "CAP-03", "No", "dcval.read.masters"],
             ["API-06", "Get Property Classifications", "GET", "/dc-valuation/v1/property-classifications", "CAP-04", "No", "dcval.read.masters"],
             ["API-07", "Get Property Areas by Tehsil", "GET", "/dc-valuation/v1/tehsils/{tehsilId}/property-areas", "CAP-04", "No", "dcval.read.masters"],
-            ["API-08", "Get Khasra Nos by Property Area", "GET", "/dc-valuation/v1/property-areas/{propertyAreaId}/khasras", "CAP-04", "No", "dcval.read.masters"],
-            ["API-09", "Get Valuation by Khasra No", "GET", "/dc-valuation/v1/khasras/{khasraId}/valuation", "CAP-05", "No", "dcval.read.valuation"],
-            ["API-10", "Get Valuation by Property Area & Khasra No(s)", "POST", "/dc-valuation/v1/valuations/by-property-area", "CAP-05", "No", "dcval.read.valuation"],
+            ["API-08", "Get Khasra / Kila Nos by Property Area", "GET", "/dc-valuation/v1/property-areas/{propertyAreaId}/khasras", "CAP-04", "No", "dcval.read.masters"],
+            ["API-09", "Get Valuation by Khasra No (GetValuationMethod)", "POST", "/dc-valuation/v1/valuations/by-khasra", "CAP-05", "No", "dcval.read.valuation"],
+            ["API-10", "Get Valuation by Property Area (full area)", "GET", "/dc-valuation/v1/property-areas/{propertyAreaId}/valuation", "CAP-05", "No", "dcval.read.valuation"],
+            ["API-11", "Get Valuation by Property Area & Khasra No(s) (GetValuationMethod)", "POST", "/dc-valuation/v1/valuations/by-property-area", "CAP-05", "No", "dcval.read.valuation"],
         ],
     )
-    add_para(doc, "Table 6-1: Operation inventory. Machine-readable definition at Appendix A SHALL agree with this table.", size=9, italic=True, color=GRAY)
+    add_para(
+        doc,
+        "Table 6-1: Operation inventory. Machine-readable definition at Appendix A SHALL agree with this table. "
+        "API-09 and API-11 realise the business operation commonly referred to as GetValuationMethod "
+        "(single Urban khasra context vs Rural multi-khasra / property-area context).",
+        size=9, italic=True, color=GRAY,
+    )
 
     heading(doc, "6.2 Common Request Headers", 2)
     add_table(
@@ -1018,7 +1027,7 @@ def build():
         ["Header", "Obligation", "Format / Permitted Values", "Description"],
         [
             ["Authorization", "SHALL", "Bearer {access_token}", "Credential established under Section 5.2"],
-            ["Content-Type", "SHALL for requests with body", "application/json; charset=utf-8", "Required for API-10"],
+            ["Content-Type", "SHALL for requests with body", "application/json; charset=utf-8", "Required for API-09 and API-11"],
             ["Accept", "SHALL", "application/json", "Content negotiation"],
             ["X-Correlation-Id", "SHALL", "UUID v4", "Consumer-generated; echoed on response"],
             ["X-Request-Timestamp", "MAY / SHALL if enforced", "ISO 8601 with offset", "Freshness validation"],
@@ -1333,10 +1342,10 @@ def build():
     # API-05
     add_operation(
         "API-05", "Get Khasra Nos by Mauza",
-        "Returns Khasra numbers associated with the selected Mauza (Urban path).",
+        "Returns Khasra numbers (with Square and Kila identifiers) associated with the selected Mauza (Urban path).",
         "CAP-03", "GET", "/dc-valuation/v1/mauzas/{mauzaId}/khasras", "dcval.read.masters",
         ["Valid mauzaId from API-04.", "Urban path in progress."],
-        ["No state change. Khasra list returned."],
+        ["No state change. Khasra list with Square/Kila identifiers returned."],
         [["mauzaId", "path", "string", "M", "Must exist", "M-100", "Mauza identifier"],
          ["page", "query", "integer", "O", "≥1", "1", "Page"],
          ["size", "query", "integer", "O", "1–200", "50", "Size"]],
@@ -1346,7 +1355,11 @@ def build():
         "X-Correlation-Id: {uuid}",
         [
             ["khasras[].khasraId", "string", "opaque id", "Yes", "Khasra identifier"],
-            ["khasras[].khasraNo", "string", "parcel no", "Yes", "Khasra number as displayed"],
+            ["khasras[].khasraNumber", "string", "parcel no", "Yes", "Khasra number as displayed"],
+            ["khasras[].squareId", "string", "opaque id", "Yes", "Square identifier"],
+            ["khasras[].squareNumber", "string", "display no", "Yes", "Square number"],
+            ["khasras[].kilaId", "string", "opaque id", "Yes", "Kila identifier"],
+            ["khasras[].kilaNumber", "string", "display no", "Yes", "Kila number"],
             ["khasras[].mauzaId", "string", "opaque id", "Yes", "Parent mauza"],
             ["page", "object", "—", "Yes", "Pagination metadata"],
         ],
@@ -1355,17 +1368,28 @@ def build():
         '  "responseCode": "DCVAL-0000",\n'
         '  "data": {\n'
         '    "khasras": [\n'
-        '      { "khasraId": "K-9001", "khasraNo": "123/1", "mauzaId": "M-100" }\n'
+        '      {\n'
+        '        "khasraId": "K-9001",\n'
+        '        "khasraNumber": "123/1",\n'
+        '        "squareId": "SQ-12",\n'
+        '        "squareNumber": "12",\n'
+        '        "kilaId": "KL-03",\n'
+        '        "kilaNumber": "3",\n'
+        '        "mauzaId": "M-100"\n'
+        '      }\n'
         '    ]\n'
         '  }\n'
         '}',
         [
-            ["200", "DCVAL-0000", "Success", "Present Khasra list; on select call API-09"],
+            ["200", "DCVAL-0000", "Success", "Present Khasra list; on select call API-09 with khasraId, squareId, kilaId"],
             ["404", "ERR-4002", "Unknown mauzaId", "Refresh mauzas"],
             ["500", "ERR-5001", "Provider fault", "Bounded retry"],
         ],
         [["BR-05", "Khasras returned SHALL belong to the path mauzaId", "Service", "ERR-4002"]],
-        ["Urban path typically selects a single Khasra before valuation (API-09)."],
+        [
+            "Urban path selects a Khasra row then invokes API-09 (GetValuationMethod) with khasraId, squareId and kilaId.",
+            "Field alias khasraNo MAY be accepted as synonym of khasraNumber for backward compatibility.",
+        ],
     )
 
     # API-06 classifications
@@ -1454,77 +1478,110 @@ def build():
             ["500", "ERR-5001", "Provider fault", "Bounded retry"],
         ],
         [["BR-07", "Property areas SHALL match tehsilId + classificationCode + RURAL", "Service", "ERR-4001"]],
-        ["Selected propertyAreaId is input to API-08 and API-10."],
+        ["Selected propertyAreaId is input to API-08, API-10 (full-area valuation) and API-11 (khasra-based valuation)."],
     )
 
     # API-08
     add_operation(
-        "API-08", "Get Khasra Nos by Property Area",
-        "Returns Khasra numbers for the selected Rural Property Area. PERA MAY allow multi-select.",
+        "API-08", "Get Khasra / Kila Nos by Property Area",
+        "Returns Khasra and/or Kila lists for the selected Rural Property Area. PERA MAY allow multi-select of khasras.",
         "CAP-04", "GET", "/dc-valuation/v1/property-areas/{propertyAreaId}/khasras", "dcval.read.masters",
         ["Valid propertyAreaId from API-07.", "Rural path in progress."],
-        ["No state change. Khasra list returned for single or multi-select."],
+        ["No state change. Khasra and Kila identifier lists returned for selection."],
         [
             ["propertyAreaId", "path", "string", "M", "Must exist", "PA-55", "Property area identifier"],
+            ["listType", "query", "string", "O", "KHASRA|KILA|BOTH", "BOTH", "Which list(s) to return"],
             ["page", "query", "integer", "O", "≥1", "1", "Page"],
             ["size", "query", "integer", "O", "1–200", "50", "Size"],
         ],
         None,
-        "GET /dc-valuation/v1/property-areas/PA-55/khasras?page=1&size=50 HTTP/1.1\n"
+        "GET /dc-valuation/v1/property-areas/PA-55/khasras?listType=BOTH&page=1&size=50 HTTP/1.1\n"
         "Authorization: Bearer {token}\n"
         "X-Correlation-Id: {uuid}",
         [
-            ["khasras[].khasraId", "string", "opaque id", "Yes", "Khasra identifier"],
-            ["khasras[].khasraNo", "string", "parcel no", "Yes", "Khasra number"],
-            ["khasras[].propertyAreaId", "string", "opaque id", "Yes", "Parent property area"],
+            ["khasras[].khasraId", "string", "opaque id", "Yes*", "Khasra identifier (*when list includes khasras)"],
+            ["khasras[].khasraNumber", "string", "parcel no", "Yes*", "Khasra number"],
+            ["khasras[].squareId", "string", "opaque id", "No", "Square identifier if applicable"],
+            ["khasras[].squareNumber", "string", "display no", "No", "Square number if applicable"],
+            ["khasras[].kilaId", "string", "opaque id", "No", "Kila identifier if applicable"],
+            ["khasras[].kilaNumber", "string", "display no", "No", "Kila number if applicable"],
+            ["kilas[].kilaId", "string", "opaque id", "Yes*", "Kila identifier (*when list includes kilas)"],
+            ["kilas[].kilaNumber", "string", "display no", "Yes*", "Kila number"],
+            ["propertyAreaId", "string", "opaque id", "Yes", "Parent property area"],
             ["page", "object", "—", "Yes", "Pagination metadata"],
         ],
         '{\n'
         '  "status": "SUCCESS",\n'
         '  "responseCode": "DCVAL-0000",\n'
         '  "data": {\n'
+        '    "propertyAreaId": "PA-55",\n'
         '    "khasras": [\n'
-        '      { "khasraId": "K-7001", "khasraNo": "45", "propertyAreaId": "PA-55" },\n'
-        '      { "khasraId": "K-7002", "khasraNo": "46", "propertyAreaId": "PA-55" }\n'
+        '      {\n'
+        '        "khasraId": "K-7001",\n'
+        '        "khasraNumber": "45",\n'
+        '        "squareId": "SQ-01",\n'
+        '        "squareNumber": "1",\n'
+        '        "kilaId": "KL-01",\n'
+        '        "kilaNumber": "1"\n'
+        '      }\n'
+        '    ],\n'
+        '    "kilas": [\n'
+        '      { "kilaId": "KL-01", "kilaNumber": "1" },\n'
+        '      { "kilaId": "KL-02", "kilaNumber": "2" }\n'
         '    ]\n'
         '  }\n'
         '}',
         [
-            ["200", "DCVAL-0000", "Success", "Allow single or multi Khasra selection; then call API-10"],
+            ["200", "DCVAL-0000", "Success", "Allow single or multi Khasra selection; then call API-11"],
             ["404", "ERR-4002", "Unknown propertyAreaId", "Refresh property areas"],
             ["500", "ERR-5001", "Provider fault", "Bounded retry"],
         ],
-        [["BR-08", "Khasras returned SHALL belong to propertyAreaId", "Service", "ERR-4002"]],
-        ["For multi-select Rural valuation, PERA passes one or more khasraId values to API-10."],
+        [["BR-08", "Khasras/Kilas returned SHALL belong to propertyAreaId", "Service", "ERR-4002"]],
+        [
+            "Where PERA selects Full Property Area valuation (no khasra selection), call API-10 instead of API-08/API-11.",
+            "For multi-select Rural khasra valuation, PERA passes one or more khasra selections to API-11 (GetValuationMethod).",
+        ],
     )
 
-    # API-09
+    # API-09 — Urban GetValuationMethod
     add_operation(
-        "API-09", "Get Valuation by Khasra No",
-        "Returns the DC valuation rate for a single Khasra (primarily Urban path after Mauza selection).",
-        "CAP-05", "GET", "/dc-valuation/v1/khasras/{khasraId}/valuation", "dcval.read.valuation",
-        ["Valid khasraId from API-05 (or API-08 where single select is used).", "Caller has dcval.read.valuation."],
-        ["No state change. DC valuation rate details returned for the Khasra."],
+        "API-09", "Get Valuation by Khasra No (GetValuationMethod)",
+        "Returns DC valuation details for a selected Urban Khasra context. "
+        "Consumer passes khasraId, squareId and kilaId selected from API-05.",
+        "CAP-05", "POST", "/dc-valuation/v1/valuations/by-khasra", "dcval.read.valuation",
         [
-            ["khasraId", "path", "string", "M", "Must exist", "K-9001", "Khasra identifier"],
-            ["asOfDate", "query", "date", "O", "YYYY-MM-DD", "2026-08-10", "Optional valuation effective date; default current"],
+            "Valid khasraId, squareId and kilaId from API-05.",
+            "Caller has dcval.read.valuation.",
         ],
-        None,
-        "GET /dc-valuation/v1/khasras/K-9001/valuation HTTP/1.1\n"
+        ["No state change. DC valuation details returned for the selected khasra context."],
+        [],
+        [
+            ["khasraId", "string", "opaque id", "M", "Must exist", "K-9001"],
+            ["squareId", "string", "opaque id", "M", "Must match khasra context", "SQ-12"],
+            ["kilaId", "string", "opaque id", "M", "Must match khasra context", "KL-03"],
+            ["asOfDate", "date", "YYYY-MM-DD", "O", "Optional effective date", "2026-08-10"],
+        ],
+        "POST /dc-valuation/v1/valuations/by-khasra HTTP/1.1\n"
+        "Host: {uat-host}\n"
         "Authorization: Bearer {token}\n"
-        "X-Correlation-Id: {uuid}",
+        "Content-Type: application/json; charset=utf-8\n"
+        "X-Correlation-Id: {uuid}\n\n"
+        "{\n"
+        '  "khasraId": "K-9001",\n'
+        '  "squareId": "SQ-12",\n'
+        '  "kilaId": "KL-03"\n'
+        "}",
         [
             ["khasraId", "string", "opaque id", "Yes", "Khasra identifier"],
-            ["khasraNo", "string", "parcel no", "Yes", "Khasra number"],
-            ["propertyType", "string", "URBAN|RURAL", "Yes", "Property type context"],
-            ["districtId", "string", "opaque id", "Yes", "District"],
-            ["tehsilId", "string", "opaque id", "Yes", "Tehsil"],
-            ["mauzaId", "string", "opaque id", "No", "Present for Urban/Mauza context"],
+            ["squareId", "string", "opaque id", "Yes", "Square identifier"],
+            ["kilaId", "string", "opaque id", "Yes", "Kila identifier"],
             ["dcRate", "string", "decimal string", "Yes", "DC valuation rate amount"],
+            ["structureRate", "string", "decimal string", "Yes", "Structure rate amount"],
+            ["location", "string", "UTF-8", "Yes", "Location description / locality"],
+            ["classification", "string", "UTF-8 / code", "Yes", "Property classification for the rate"],
+            ["unitOfMeasurement", "string", "token", "Yes", "e.g. PER_MARLA / PER_KANAL / PER_SQFT"],
             ["currency", "string", "ISO code", "Yes", "PKR"],
-            ["rateUnit", "string", "token", "Yes", "e.g. PER_MARLA / PER_KANAL / AS_PUBLISHED"],
             ["effectiveFrom", "date", "YYYY-MM-DD", "Yes", "Rate effective from"],
-            ["effectiveTo", "date", "YYYY-MM-DD", "No", "Rate effective to if applicable"],
             ["scheduleReference", "string", "ref", "No", "PLRA schedule / notification reference"],
         ],
         '{\n'
@@ -1536,53 +1593,125 @@ def build():
         '  "timestamp": "2026-08-10T15:40:00+05:00",\n'
         '  "data": {\n'
         '    "khasraId": "K-9001",\n'
-        '    "khasraNo": "123/1",\n'
-        '    "propertyType": "URBAN",\n'
-        '    "districtId": "D-042",\n'
-        '    "tehsilId": "T-010",\n'
-        '    "mauzaId": "M-100",\n'
+        '    "squareId": "SQ-12",\n'
+        '    "kilaId": "KL-03",\n'
         '    "dcRate": "2500000.00",\n'
+        '    "structureRate": "500000.00",\n'
+        '    "location": "Sample Urban Locality",\n'
+        '    "classification": "RESIDENTIAL",\n'
+        '    "unitOfMeasurement": "PER_MARLA",\n'
         '    "currency": "PKR",\n'
-        '    "rateUnit": "PER_MARLA",\n'
         '    "effectiveFrom": "2026-01-01",\n'
-        '    "effectiveTo": null,\n'
         '    "scheduleReference": "DC-VAL-LHR-2026"\n'
         '  },\n'
         '  "errors": null\n'
         '}',
         [
-            ["200", "DCVAL-0000", "Rate found", "Display rate in Activity Register"],
-            ["404", "ERR-4003", "Khasra not found or no rate published", "Inform user; do not invent rate"],
+            ["200", "DCVAL-0000", "Rate found", "Display rate fields in Activity Register"],
+            ["404", "ERR-4003", "Khasra context not found or no rate published", "Inform user; do not invent rate"],
+            ["422", "ERR-4005", "squareId/kilaId mismatch for khasraId", "Re-select khasra from API-05"],
             ["401", "ERR-2001", "Auth failure", "Re-authenticate"],
             ["403", "ERR-3001", "Missing valuation scope", "Escalate"],
             ["500", "ERR-5001", "Provider fault", "Bounded retry"],
         ],
         [
             ["BR-09", "If no published DC rate exists, return ERR-4003; never fabricate a rate", "Service", "ERR-4003"],
-            ["BR-10", "dcRate is authoritative for the returned effective period only", "Service", "N/A"],
+            ["BR-10", "khasraId + squareId + kilaId SHALL form a consistent Urban parcel key", "Service", "ERR-4005"],
+            ["BR-10A", "Returned fields dcRate, structureRate, location, classification, unitOfMeasurement are mandatory when SUCCESS", "Service", "N/A"],
         ],
         [
+            "Business alias: GetValuationMethod (single khasra / Urban path).",
             "Sample amounts are synthetic and non-authoritative.",
-            "For Rural multi-Khasra selection, prefer API-10.",
+            "For Rural multi-Khasra selection, use API-11. For Rural full Property Area, use API-10.",
         ],
     )
 
-    # API-10
+    # API-10 — Rural full property area valuation
     add_operation(
-        "API-10", "Get Valuation by Property Area & Khasra No(s)",
-        "Returns DC valuation rates for one or more Khasras under a Rural Property Area. "
-        "Supports multi-Khasra selection in a single call.",
+        "API-10", "Get Valuation by Property Area",
+        "Returns DC valuation details for a Rural Property Area when the citizen/user selects "
+        "full property area valuation (no khasra multi-select).",
+        "CAP-05", "GET", "/dc-valuation/v1/property-areas/{propertyAreaId}/valuation", "dcval.read.valuation",
+        [
+            "Valid propertyAreaId from API-07.",
+            "Rural path; full-area valuation mode selected.",
+            "Caller has dcval.read.valuation.",
+        ],
+        ["No state change. DC valuation details returned for the Property Area."],
+        [
+            ["propertyAreaId", "path", "string", "M", "Must exist", "PA-55", "Property area identifier"],
+            ["asOfDate", "query", "date", "O", "YYYY-MM-DD", "2026-08-10", "Optional valuation effective date"],
+        ],
+        None,
+        "GET /dc-valuation/v1/property-areas/PA-55/valuation HTTP/1.1\n"
+        "Authorization: Bearer {token}\n"
+        "X-Correlation-Id: {uuid}",
+        [
+            ["propertyAreaId", "string", "opaque id", "Yes", "Property area identifier"],
+            ["propertyAreaName", "string", "UTF-8", "Yes", "Property area display name"],
+            ["dcRate", "string", "decimal string", "Yes", "DC valuation rate amount"],
+            ["structureRate", "string", "decimal string", "Yes", "Structure rate amount"],
+            ["location", "string", "UTF-8", "Yes", "Location description"],
+            ["classification", "string", "UTF-8 / code", "Yes", "Property classification"],
+            ["unitOfMeasurement", "string", "token", "Yes", "Unit of measurement"],
+            ["currency", "string", "ISO code", "Yes", "PKR"],
+            ["effectiveFrom", "date", "YYYY-MM-DD", "Yes", "Rate effective from"],
+        ],
+        '{\n'
+        '  "status": "SUCCESS",\n'
+        '  "responseCode": "DCVAL-0000",\n'
+        '  "responseMessage": "Property area DC valuation retrieved",\n'
+        '  "correlationId": "{uuid}",\n'
+        '  "transactionId": "TXN-20260810-000095",\n'
+        '  "timestamp": "2026-08-10T15:42:00+05:00",\n'
+        '  "data": {\n'
+        '    "propertyAreaId": "PA-55",\n'
+        '    "propertyAreaName": "Sample Rural Area",\n'
+        '    "dcRate": "150000.00",\n'
+        '    "structureRate": "25000.00",\n'
+        '    "location": "Sample Rural Location",\n'
+        '    "classification": "AGRICULTURE",\n'
+        '    "unitOfMeasurement": "PER_KANAL",\n'
+        '    "currency": "PKR",\n'
+        '    "effectiveFrom": "2026-01-01"\n'
+        '  },\n'
+        '  "errors": null\n'
+        '}',
+        [
+            ["200", "DCVAL-0000", "Rate found", "Display full-area rate in Activity Register"],
+            ["404", "ERR-4003", "Property area not found or no rate published", "Inform user; do not invent rate"],
+            ["403", "ERR-3001", "Missing scope", "Escalate"],
+            ["500", "ERR-5001", "Provider fault", "Bounded retry"],
+        ],
+        [
+            ["BR-10B", "Full-area valuation SHALL NOT require khasra selection", "Service", "N/A"],
+            ["BR-10C", "If no published area rate exists, return ERR-4003", "Service", "ERR-4003"],
+        ],
+        [
+            "Use this operation when Rural user chooses Full Property Area.",
+            "When Rural user instead selects khasra(s)/kila(s), use API-08 then API-11.",
+        ],
+    )
+
+    # API-11 — Rural multi-khasra GetValuationMethod
+    add_operation(
+        "API-11", "Get Valuation by Property Area & Khasra No(s) (GetValuationMethod)",
+        "Returns DC valuation details for one or more selected Rural Khasras under a Property Area. "
+        "Supports multi-Khasra selection in a single call (GetValuationMethod).",
         "CAP-05", "POST", "/dc-valuation/v1/valuations/by-property-area", "dcval.read.valuation",
         [
             "Valid propertyAreaId from API-07.",
-            "One or more khasraIds from API-08 belonging to that property area.",
+            "One or more khasra selections from API-08 belonging to that property area.",
             "Caller has dcval.read.valuation.",
         ],
         ["No state change. Array of DC valuation results returned (one entry per requested Khasra)."],
         [],
         [
             ["propertyAreaId", "string", "opaque id", "M", "Must exist", "PA-55"],
-            ["khasraIds", "array[string]", "1–50 items", "M", "Each must belong to propertyAreaId", '["K-7001","K-7002"]'],
+            ["khasras", "array[object]", "1–50 items", "M", "Each item identifies a khasra context", "see sample"],
+            ["khasras[].khasraId", "string", "opaque id", "M", "Must belong to propertyAreaId", "K-7001"],
+            ["khasras[].squareId", "string", "opaque id", "O/C", "Required where Square applies", "SQ-01"],
+            ["khasras[].kilaId", "string", "opaque id", "O/C", "Required where Kila applies", "KL-01"],
             ["asOfDate", "date", "YYYY-MM-DD", "O", "Optional effective date", "2026-08-10"],
         ],
         "POST /dc-valuation/v1/valuations/by-property-area HTTP/1.1\n"
@@ -1593,16 +1722,22 @@ def build():
         "X-Correlation-Id: {uuid}\n\n"
         "{\n"
         '  "propertyAreaId": "PA-55",\n'
-        '  "khasraIds": ["K-7001", "K-7002"]\n'
+        '  "khasras": [\n'
+        '    { "khasraId": "K-7001", "squareId": "SQ-01", "kilaId": "KL-01" },\n'
+        '    { "khasraId": "K-7002", "squareId": "SQ-01", "kilaId": "KL-02" }\n'
+        "  ]\n"
         "}",
         [
             ["valuations[].khasraId", "string", "opaque id", "Yes", "Khasra identifier"],
-            ["valuations[].khasraNo", "string", "parcel no", "Yes", "Khasra number"],
+            ["valuations[].squareId", "string", "opaque id", "No", "Square identifier"],
+            ["valuations[].kilaId", "string", "opaque id", "No", "Kila identifier"],
             ["valuations[].propertyAreaId", "string", "opaque id", "Yes", "Property area"],
-            ["valuations[].dcRate", "string", "decimal string", "Yes*", "DC rate (*null if not found for that khasra)"],
+            ["valuations[].dcRate", "string", "decimal string", "Yes*", "DC rate (*null if NOT_FOUND)"],
+            ["valuations[].structureRate", "string", "decimal string", "Yes*", "Structure rate"],
+            ["valuations[].location", "string", "UTF-8", "Yes*", "Location"],
+            ["valuations[].classification", "string", "UTF-8 / code", "Yes*", "Classification"],
+            ["valuations[].unitOfMeasurement", "string", "token", "Yes*", "Unit of measurement"],
             ["valuations[].currency", "string", "PKR", "No", "Present when rate found"],
-            ["valuations[].rateUnit", "string", "token", "No", "Present when rate found"],
-            ["valuations[].effectiveFrom", "date", "YYYY-MM-DD", "No", "Present when rate found"],
             ["valuations[].resultStatus", "string", "FOUND|NOT_FOUND", "Yes", "Per-khasra outcome"],
             ["valuations[].message", "string", "UTF-8", "No", "Per-khasra diagnostic if NOT_FOUND"],
         ],
@@ -1618,19 +1753,27 @@ def build():
         '    "valuations": [\n'
         '      {\n'
         '        "khasraId": "K-7001",\n'
-        '        "khasraNo": "45",\n'
+        '        "squareId": "SQ-01",\n'
+        '        "kilaId": "KL-01",\n'
         '        "propertyAreaId": "PA-55",\n'
         '        "dcRate": "180000.00",\n'
+        '        "structureRate": "20000.00",\n'
+        '        "location": "Sample Rural Location",\n'
+        '        "classification": "AGRICULTURE",\n'
+        '        "unitOfMeasurement": "PER_MARLA",\n'
         '        "currency": "PKR",\n'
-        '        "rateUnit": "PER_MARLA",\n'
-        '        "effectiveFrom": "2026-01-01",\n'
         '        "resultStatus": "FOUND"\n'
         '      },\n'
         '      {\n'
         '        "khasraId": "K-7002",\n'
-        '        "khasraNo": "46",\n'
+        '        "squareId": "SQ-01",\n'
+        '        "kilaId": "KL-02",\n'
         '        "propertyAreaId": "PA-55",\n'
         '        "dcRate": null,\n'
+        '        "structureRate": null,\n'
+        '        "location": null,\n'
+        '        "classification": null,\n'
+        '        "unitOfMeasurement": null,\n'
         '        "resultStatus": "NOT_FOUND",\n'
         '        "message": "No published DC rate for khasra"\n'
         '      }\n'
@@ -1647,13 +1790,14 @@ def build():
             ["500", "ERR-5001", "Provider fault", "Bounded retry with same payload"],
         ],
         [
-            ["BR-11", "Maximum 50 khasraIds per request", "Gateway/Service", "ERR-1001"],
+            ["BR-11", "Maximum 50 khasra selections per request", "Gateway/Service", "ERR-1001"],
             ["BR-12", "All khasraIds SHALL belong to propertyAreaId", "Service", "ERR-4004"],
             ["BR-13", "Partial success is allowed: overall SUCCESS with per-item NOT_FOUND", "Service", "N/A"],
-            ["BR-14", "Duplicate khasraIds in request are de-duplicated server-side", "Service", "N/A"],
+            ["BR-14", "Duplicate khasra contexts in request are de-duplicated server-side", "Service", "N/A"],
+            ["BR-15", "Multiple selected khasras SHALL be valued in one GetValuationMethod call", "Service", "N/A"],
         ],
         [
-            "This is the mandatory Rural multi-Khasra valuation operation.",
+            "Business alias: GetValuationMethod (Rural multi-khasra path).",
             "POST is used only to carry the array body; the operation is read-only and idempotent.",
             "PERA SHALL display per-Khasra outcomes and SHALL NOT invent rates for NOT_FOUND items.",
         ],
@@ -1673,9 +1817,11 @@ def build():
             ["Tehsil", "Administrative tehsil under a district", "CLRMIS", "API-03, API-04, API-07"],
             ["Mauza", "Revenue estate used on Urban path", "CLRMIS", "API-04, API-05, API-09"],
             ["PropertyClassification", "Rural land use class", "PLRA DCVAL", "API-06, API-07"],
-            ["PropertyArea", "Rural area unit under tehsil + classification", "PLRA DCVAL", "API-07, API-08, API-10"],
-            ["Khasra", "Land parcel number", "CLRMIS", "API-05, API-08, API-09, API-10"],
-            ["DcValuation", "Published DC rate for a khasra context", "PLRA DCVAL", "API-09, API-10"],
+            ["PropertyArea", "Rural area unit under tehsil + classification", "PLRA DCVAL", "API-07, API-08, API-10, API-11"],
+            ["Khasra", "Land parcel number with optional Square/Kila context", "CLRMIS", "API-05, API-08, API-09, API-11"],
+            ["Square", "Square subdivision associated with a khasra context", "CLRMIS", "API-05, API-08, API-09, API-11"],
+            ["Kila", "Kila subdivision associated with a khasra context", "CLRMIS", "API-05, API-08, API-09, API-11"],
+            ["DcValuation", "Published DC rate for khasra or property-area context", "PLRA DCVAL", "API-09, API-10, API-11"],
         ],
     )
 
@@ -1691,10 +1837,17 @@ def build():
             ["propertyAreaId", "PropertyArea", "string", "64", "opaque", "N", "Internal", "Stable property area identifier"],
             ["classificationCode", "PropertyClassification", "string", "32", "ENUM", "N", "Public", "RESIDENTIAL/COMMERCIAL/AGRICULTURE/INDUSTRIAL"],
             ["khasraId", "Khasra", "string", "64", "opaque", "N", "Internal", "Stable khasra identifier"],
-            ["khasraNo", "Khasra", "string", "50", "UTF-8", "N", "Internal", "Khasra number as published"],
+            ["khasraNumber", "Khasra", "string", "50", "UTF-8", "N", "Internal", "Khasra number as published"],
+            ["squareId", "Square", "string", "64", "opaque", "N", "Internal", "Square identifier"],
+            ["squareNumber", "Square", "string", "50", "UTF-8", "N", "Internal", "Square number"],
+            ["kilaId", "Kila", "string", "64", "opaque", "N", "Internal", "Kila identifier"],
+            ["kilaNumber", "Kila", "string", "50", "UTF-8", "N", "Internal", "Kila number"],
             ["dcRate", "DcValuation", "string", "32", "decimal", "Y", "Sensitive", "DC valuation rate amount"],
+            ["structureRate", "DcValuation", "string", "32", "decimal", "Y", "Sensitive", "Structure rate amount"],
+            ["location", "DcValuation", "string", "250", "UTF-8", "Y", "Public", "Location / locality"],
+            ["classification", "DcValuation", "string", "64", "UTF-8/code", "Y", "Public", "Classification for the published rate"],
+            ["unitOfMeasurement", "DcValuation", "string", "32", "token", "Y", "Public", "Unit of measurement for the rate"],
             ["currency", "DcValuation", "string", "3", "ISO 4217", "Y", "Public", "Currency code (PKR)"],
-            ["rateUnit", "DcValuation", "string", "32", "token", "Y", "Public", "Unit of rate quotation"],
             ["effectiveFrom", "DcValuation", "date", "10", "YYYY-MM-DD", "Y", "Public", "Rate effective start"],
             ["correlationId", "—", "string", "36", "UUID", "N", "Internal", "Consumer correlation key"],
         ],
@@ -1806,7 +1959,7 @@ def build():
         doc,
         ["Parameter", "Specification"],
         [
-            ["Reconciliation Mechanism", "Optional sample comparison of Activity Register stored rates vs re-query of API-09/API-10"],
+            ["Reconciliation Mechanism", "Optional sample comparison of Activity Register stored rates vs re-query of API-09/API-10/API-11"],
             ["Frequency", "Monthly joint sample (recommended)"],
             ["Reconciliation Key", "khasraId + effectiveFrom / scheduleReference"],
             ["Authoritative Record", "PLRA DC Valuation source prevails"],
@@ -1864,7 +2017,8 @@ def build():
             ["ERR-4001", "422", "Business Rule", "Urban/Rural path mismatch", "Follow correct path", "No"],
             ["ERR-4002", "404", "Resource", "Unknown district/tehsil/mauza/area id", "Refresh master data", "No"],
             ["ERR-4003", "404", "Resource", "No DC rate published for khasra", "Inform user", "No"],
-            ["ERR-4004", "422", "Business Rule", "Khasra not in property area (API-10)", "Remove invalid ids", "No"],
+            ["ERR-4004", "422", "Business Rule", "Khasra not in property area (API-11)", "Remove invalid ids", "No"],
+            ["ERR-4005", "422", "Business Rule", "squareId/kilaId mismatch for khasraId (API-09)", "Re-select from API-05", "No"],
             ["ERR-5001", "500", "System", "Unhandled provider fault", "Bounded retry", "Yes"],
             ["ERR-6001", "429", "Throttling", "Rate/quota exceeded", "Backoff + Retry-After", "Yes"],
         ],
@@ -1905,7 +2059,7 @@ def build():
         [
             ["Response time (median)", "Master data reads (API-01–08)", "≤ 800 ms", "Gateway ingress to egress"],
             ["Response time (95th percentile)", "Master data reads", "≤ 2000 ms", "Gateway ingress to egress"],
-            ["Response time (95th percentile)", "Valuation reads (API-09–10)", "≤ 2000 ms", "Gateway ingress to egress"],
+            ["Response time (95th percentile)", "Valuation reads (API-09–11)", "≤ 2000 ms", "Gateway ingress to egress"],
             ["Provider processing timeout", "All", "10 seconds", "Provider"],
             ["Recommended consumer timeout", "All", "15 seconds", "PERA client"],
         ],
@@ -1921,7 +2075,7 @@ def build():
             ["Daily quota", "As agreed in onboarding schedule", "Rejected with 429"],
             ["Concurrent connections", "50", "Queued or rejected"],
             ["Maximum request payload", "64 KB", "413"],
-            ["Maximum khasraIds in API-10", "50", "400 ERR-1001"],
+            ["Maximum khasra selections in API-11", "50", "400 ERR-1001"],
         ],
     )
 
@@ -2099,13 +2253,15 @@ def build():
             ["TC-03", "Authentication", "Obtain token with valid credentials", "Token with expected claims", "Pending", ""],
             ["TC-04", "Authentication", "Invoke with expired token", "ERR-2002", "Pending", ""],
             ["TC-05", "Authorisation", "Call valuation API without valuation scope", "ERR-3001; no data", "Pending", ""],
-            ["TC-06", "Functional", "Urban path end-to-end to API-09", "DCVAL-0000 with dcRate", "Pending", ""],
-            ["TC-07", "Functional", "Rural multi-khasra API-10", "Per-item FOUND/NOT_FOUND", "Pending", ""],
+            ["TC-06", "Functional", "Urban path end-to-end to API-09 (khasraId+squareId+kilaId)", "DCVAL-0000 with dcRate, structureRate, location, classification, unitOfMeasurement", "Pending", ""],
+            ["TC-07", "Functional", "Rural full Property Area API-10", "DCVAL-0000 with valuation fields", "Pending", ""],
+            ["TC-07A", "Functional", "Rural multi-khasra API-11 GetValuationMethod", "Per-item FOUND/NOT_FOUND with valuation fields", "Pending", ""],
             ["TC-08", "Validation", "Omit mandatory propertyType", "ERR-1002", "Pending", ""],
             ["TC-09", "Business Rule", "Call Mauza API with propertyType=RURAL", "ERR-4001", "Pending", ""],
             ["TC-10", "Resource", "Unknown districtId", "ERR-4002", "Pending", ""],
             ["TC-11", "Resource", "Khasra with no published rate", "ERR-4003 or NOT_FOUND", "Pending", ""],
-            ["TC-12", "Business Rule", "API-10 khasra not in area", "ERR-4004", "Pending", ""],
+            ["TC-12", "Business Rule", "API-11 khasra not in area", "ERR-4004", "Pending", ""],
+            ["TC-12A", "Business Rule", "API-09 squareId/kilaId mismatch", "ERR-4005", "Pending", ""],
             ["TC-13", "Throttling", "Exceed rate ceiling", "429 + Retry-After honoured", "Pending", ""],
             ["TC-14", "Data", "Urdu names round-trip", "No corruption", "Pending", ""],
             ["TC-15", "Resilience", "Timeout then retry read", "No fabricated stored rate", "Pending", ""],
@@ -2179,7 +2335,7 @@ def build():
         "Implement tolerant reading for additive response fields.",
         "Persist correlationId and transactionId on the Activity Register business record.",
         "Implement Urban and Rural cascading flows exactly as Section 2.2.1.",
-        "For Rural multi-select, call API-10 and handle per-item FOUND/NOT_FOUND.",
+        "For Rural full Property Area, call API-10. For Rural multi-select khasras, call API-11 (GetValuationMethod) and handle per-item FOUND/NOT_FOUND.",
         "Never invent or hard-code DC rates when APIs fail.",
     ]:
         bullet(doc, t)
@@ -2292,7 +2448,7 @@ def build():
         [
             ["Specification Standard", "OpenAPI 3.0.x"],
             ["Filename", "plra-dcval-api-v1.yaml"],
-            ["Version", "0.1"],
+            ["Version", "0.2"],
             ["Checksum", "To be generated on baseline of OpenAPI artefact"],
             ["Repository Location", "PLRA Controlled Integration Library"],
             ["Rendered Documentation", "Developer portal URL issued on onboarding (if published)"],
@@ -2312,8 +2468,9 @@ def build():
         [
             ["S-01", "API-02", "Nominal districts success", "samples/api02-success.json"],
             ["S-02", "API-03", "Unknown districtId", "samples/api03-notfound.json"],
-            ["S-03", "API-09", "Urban valuation success", "samples/api09-success.json"],
-            ["S-04", "API-10", "Rural multi-khasra partial NOT_FOUND", "samples/api10-partial.json"],
+            ["S-03", "API-09", "Urban valuation success (GetValuationMethod)", "samples/api09-success.json"],
+            ["S-04", "API-10", "Rural full Property Area valuation", "samples/api10-area-success.json"],
+            ["S-05", "API-11", "Rural multi-khasra partial NOT_FOUND (GetValuationMethod)", "samples/api11-partial.json"],
             ["S-05", "API-04", "propertyType mismatch business rule", "samples/api04-br-fail.json"],
         ],
     )
@@ -2356,7 +2513,8 @@ def build():
             ["REQ-02", "Cascade District → Tehsil", "CAP-02", "API-02, API-03", "TC-06", "Open"],
             ["REQ-03", "Urban Mauza → Khasra → Rate", "CAP-03, CAP-05", "API-04, API-05, API-09", "TC-06", "Open"],
             ["REQ-04", "Rural classification → area → khasras", "CAP-04", "API-06, API-07, API-08", "TC-07", "Open"],
-            ["REQ-05", "Multi-khasra DC rates", "CAP-05", "API-10", "TC-07", "Open"],
+            ["REQ-05", "Rural full Property Area DC rates", "CAP-05", "API-10", "TC-07", "Open"],
+            ["REQ-05A", "Multi-khasra DC rates (GetValuationMethod)", "CAP-05", "API-11", "TC-07A", "Open"],
             ["REQ-06", "Secure G2G access", "—", "All", "TC-03–TC-05", "Open"],
         ],
     )
