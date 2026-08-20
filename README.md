@@ -1,53 +1,45 @@
-# PLRA → PERA DC Valuation Rate API Specification
+# PLRA Central Payment Gateway — New Client Onboarding Guide
 
-Formal Government-to-Government (G2G) API Specification Document for exposing PLRA DC Valuation Rate services to the PERA Activity Register.
+Formal Standard Operating Procedure (SOP) and integration guide for onboarding a new client department / service onto the PLRA Central Payment Gateway.
 
 ## Deliverables
 
 | File | Description |
 |------|-------------|
-| `PLRA_PERA_DC_Valuation_API_Specification.docx` | Full API specification (template-aligned) |
-| `generate_pera_api_spec.py` | Regenerates the Word document |
+| `PLRA_Payment_Gateway_New_Client_Onboarding_Guide.docx` | Full onboarding SOP + sample payloads |
+| `generate_payment_gateway_onboarding.py` | Regenerates the Word document |
 
 ## Document identity
 
-- **Identifier:** `PLRA-DCVAL-API-SPEC-001`
-- **Version:** `0.2` (Draft)
-- **Provider:** Punjab Land Records Authority (PLRA)
-- **Consumer:** PERA — Activity Register Application
+- **Identifier:** `PLRA-PGW-ONB-GUIDE-001`
+- **Version:** `1.1`
 - **Classification:** Restricted
+- **Audience:** New client departments/services that own challans/fees
 
-## API catalogue (v1)
+## What the guide covers
 
-| API ID | Operation | Path focus |
-|--------|-----------|------------|
-| API-01 | Get Property Types | Rural / Urban |
-| API-02 | Get All Districts | District list |
-| API-03 | Get Tehsils by District | Cascading tehsil |
-| API-04 | Get Mauzas by Tehsil | Urban path |
-| API-05 | Get Khasra Nos by Mauza | Urban (incl. Square/Kila ids) |
-| API-06 | Get Property Classifications | Rural path |
-| API-07 | Get Property Areas by Tehsil | Rural path |
-| API-08 | Get Khasra / Kila Nos by Property Area | Rural multi-select |
-| API-09 | Get Valuation by Khasra No (**GetValuationMethod**) | Urban rate |
-| API-10 | Get Valuation by Property Area | Rural full-area rate |
-| API-11 | Get Valuation by Property Area & Khasra No(s) (**GetValuationMethod**) | Rural multi-khasra rates |
+1. Payment Gateway solution overview (Web Portal, Punjab Zameen, Admin Portal)
+2. Scope — CLRMIS & E-Stamp today; new services via prefix registry
+3. **SOP** for onboarding a new client (10 steps)
+4. Runtime flow: Token → Fetch → (MPGS pay) → Intimate
+5. **Pattern A** authentication (mandatory for new services)
+6. Sample **request/response payloads** for:
+   - Token API
+   - Fetch (unpaid / already-paid / not-found)
+   - Intimate (success / already-paid / idempotent retry)
+7. Dual-side network whitelisting (PLRA ↔ Client)
+8. Pre-go-live information exchange checklist
+9. **UAT checklist**
+10. **Live / Production checklist**
+11. Operational expectations, FAQ, onboarding message template, sign-off
 
-## Consumer journeys
+## Key rule for new clients
 
-**Urban:** Property Type → District → Tehsil → Mauza → Khasra → Valuation (API-09 with khasraId + squareId + kilaId)
-
-**Rural (full area):** Property Type → District → Tehsil → Classification → Property Area → Valuation (API-10)
-
-**Rural (khasra select):** Property Type → District → Tehsil → Classification → Property Area → Khasra(s) → Valuation (API-11)
-
-## Valuation response fields
-
-`dcRate`, `structureRate`, `location`, `classification`, `unitOfMeasurement`
+You expose **exactly three HTTP APIs**. PLRA Gateway calls you. You do **not** call MPGS or BoP for this flow.
 
 ## Regenerate
 
 ```bash
 pip install python-docx
-python3 generate_pera_api_spec.py
+python3 generate_payment_gateway_onboarding.py
 ```
