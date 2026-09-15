@@ -181,17 +181,12 @@ def slide_portfolio_index(prs):
         r, c = divmod(i, cols)
         x = left0 + c * (card_w + gap_x)
         y = top0 + r * (card_h + gap_y)
-        card = rounded(s, Inches(x), Inches(y), Inches(card_w), Inches(card_h), fill=WHITE, line=CARD_LINE, radius=0.14)
-        # subtle left accent
-        bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(0.06), Inches(card_h))
-        bar.fill.solid()
-        bar.fill.fore_color.rgb = GREEN if i % 2 == 0 else GOLD
-        bar.line.fill.background()
+        rounded(s, Inches(x), Inches(y), Inches(card_w), Inches(card_h), fill=WHITE, line=CARD_LINE, radius=0.14)
 
-        n = s.shapes.add_textbox(Inches(x + 0.18), Inches(y + 0.14), Inches(0.55), Inches(0.28))
+        n = s.shapes.add_textbox(Inches(x + 0.2), Inches(y + 0.12), Inches(0.55), Inches(0.28))
         add_text(n, [(f"{i + 1:02d}", 11, True, GREEN)])
-        t = s.shapes.add_textbox(Inches(x + 0.18), Inches(y + 0.42), Inches(card_w - 0.35), Inches(0.55))
-        add_text(t, [(name, 13, True, BLACK)], align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.MIDDLE)
+        t = s.shapes.add_textbox(Inches(x + 0.15), Inches(y + 0.38), Inches(card_w - 0.3), Inches(0.55))
+        add_text(t, [(name, 13, True, BLACK)], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
 
     footer(s, prs)
     return s
