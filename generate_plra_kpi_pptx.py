@@ -297,13 +297,13 @@ def slide_status(prs):
     accent_line(s, 1.15, 1.48, width=1.8)
 
     # Figma approved banner
-    banner = rounded(s, Inches(0.55), Inches(1.75), Inches(12.2), Inches(1.35), fill=GREEN_SOFT, line=GREEN_BORDER, radius=0.06)
-    fill_rect(s, Inches(0.55), Inches(1.75), Inches(0.12), Inches(1.35), GREEN)
-    badge = rounded(s, Inches(0.9), Inches(2.05), Inches(1.6), Inches(0.45), fill=GREEN, radius=0.3)
+    rounded(s, Inches(0.55), Inches(1.7), Inches(12.2), Inches(1.15), fill=GREEN_SOFT, line=GREEN_BORDER, radius=0.06)
+    fill_rect(s, Inches(0.55), Inches(1.7), Inches(0.12), Inches(1.15), GREEN)
+    badge = rounded(s, Inches(0.9), Inches(1.95), Inches(1.6), Inches(0.45), fill=GREEN, radius=0.3)
     add_text(badge, [("APPROVED", 12, True, WHITE)], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
-    ft = s.shapes.add_textbox(Inches(2.7), Inches(1.95), Inches(9.5), Inches(0.4))
+    ft = s.shapes.add_textbox(Inches(2.7), Inches(1.85), Inches(9.5), Inches(0.35))
     add_text(ft, [("Final Figma Design — Approved", 18, True, GREEN)])
-    fd = s.shapes.add_textbox(Inches(2.7), Inches(2.4), Inches(9.5), Inches(0.45))
+    fd = s.shapes.add_textbox(Inches(2.7), Inches(2.25), Inches(9.5), Inches(0.4))
     add_text(
         fd,
         [("UI/UX design for the KPI district-wise ranking platform has been finalized and formally approved.", 13, False, GRAY)],
@@ -313,18 +313,21 @@ def slide_status(prs):
     status_card(
         s,
         0.55,
-        3.35,
+        3.05,
         12.2,
-        3.35,
+        3.7,
         "Documentation & Project Plan — Shared with Vendor",
         [
-            ("The PLRA KPI team has sent an email to the vendor regarding the following deliverables:", 13, False, GRAY),
+            ("The PLRA KPI team has sent an email to the vendor regarding the following deliverables:", 12, False, GRAY),
+            ("", 4, False, WHITE),
+            ("•  SRS  — Software Requirements Specification", 13, False, BLACK),
+            ("•  BRD  — Business Requirements Document", 13, False, BLACK),
+            ("•  Workflow  — End-to-end process flows", 13, False, BLACK),
+            ("•  User Manual  — End-user operational guide", 13, False, BLACK),
+            ("•  Project Plan  — with clear module-wise man-hour estimates", 13, False, BLACK),
             ("", 6, False, WHITE),
-            ("•  SRS  — Software Requirements Specification", 14, False, BLACK),
-            ("•  BRD  — Business Requirements Document", 14, False, BLACK),
-            ("•  Workflow  — End-to-end process flows", 14, False, BLACK),
-            ("•  User Manual  — End-user operational guide", 14, False, BLACK),
-            ("•  Project Plan  — Timeline, milestones & delivery schedule", 14, False, BLACK),
+            ("Once the complete project plan and documents are received, work on the system will commence,", 12, False, GRAY),
+            ("following a dynamic approach by obtaining data through the developed APIs.", 12, False, GRAY),
         ],
     )
 
