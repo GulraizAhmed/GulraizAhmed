@@ -199,20 +199,23 @@ def slide_cover(prs):
 
 # -------------------- Slide 2: Static vs Dynamic Data --------------------
 
-def data_column(slide, left, title, subtitle, items, accent=GREEN):
-    width = 5.85
-    height = 5.0
+def data_column(slide, left, title, subtitle, items, accent=GREEN, width=5.85, height=5.0):
     rounded(slide, Inches(left), Inches(1.45), Inches(width), Inches(height), fill=WHITE, line=GREEN_BORDER, radius=0.06)
     fill_rect(slide, Inches(left), Inches(1.45), Inches(width), Inches(0.7), accent)
 
     ht = slide.shapes.add_textbox(Inches(left + 0.25), Inches(1.55), Inches(width - 0.5), Inches(0.5))
     add_text(ht, [(title, 18, True, WHITE)], align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.MIDDLE)
 
-    st = slide.shapes.add_textbox(Inches(left + 0.3), Inches(2.3), Inches(width - 0.6), Inches(0.4))
+    st = slide.shapes.add_textbox(Inches(left + 0.3), Inches(2.3), Inches(width - 0.6), Inches(0.45))
     add_text(st, [(subtitle, 12, False, GRAY)])
 
-    lines = [(f"•  {item}", 13, False, BLACK) for item in items]
-    body = slide.shapes.add_textbox(Inches(left + 0.3), Inches(2.8), Inches(width - 0.6), Inches(3.4))
+    lines = []
+    for item in items:
+        if isinstance(item, tuple):
+            lines.append(item)
+        else:
+            lines.append((f"•  {item}", 13, False, BLACK))
+    body = slide.shapes.add_textbox(Inches(left + 0.3), Inches(2.85), Inches(width - 0.6), Inches(height - 1.55))
     add_text(body, lines)
 
 
@@ -230,21 +233,18 @@ def slide_data(prs):
     title = s.shapes.add_textbox(Inches(1.15), Inches(0.85), Inches(11), Inches(0.4))
     add_text(title, [("Data Inputs — Static & Dynamic", 24, True, GREEN)])
     sub = s.shapes.add_textbox(Inches(1.15), Inches(1.2), Inches(11), Inches(0.25))
-    add_text(sub, [("Reference data received statically vs. operational data received dynamically", 12, False, GRAY_LIGHT)])
+    add_text(sub, [("Portal / database entries vs. PLRA-developed API feeds", 12, False, GRAY_LIGHT)])
     accent_line(s, 1.15, 1.48, width=1.8)
 
     data_column(
         s,
         0.55,
         "Static Data",
-        "One-time / reference datasets received for setup",
+        "Entered by field officers via the KPI portal",
         [
-            "District & tehsil master lists",
-            "Rank / designation hierarchy of authorities",
-            "Officer-to-territory organizational mapping",
-            "KPI indicator definitions & weightages",
-            "Target / benchmark thresholds per rank",
-            "Scoring & ranking formula configuration",
+            "Data submitted by field persons (DC, ADCR, AC, and other ranks)",
+            "Captured through the KPI portal and stored in the database",
+            "Maintained and reported Division-wise, District-wise, and Tehsil-wise",
         ],
         accent=GREEN,
     )
@@ -253,14 +253,13 @@ def slide_data(prs):
         s,
         6.9,
         "Dynamic Data",
-        "Ongoing / live feeds for performance measurement",
+        "Received through 3 APIs developed by the PLRA team",
         [
-            "Service delivery volumes (district-wise)",
-            "Processing & turnaround time metrics",
-            "Pendency and escalation statistics",
-            "Complaint / grievance resolution indicators",
-            "Period-wise performance score calculations",
-            "Live district-wise authority rankings",
+            ("The PLRA team has developed three APIs to receive data dynamically:", 12, False, GRAY),
+            ("", 8, False, WHITE),
+            "Inheritance Mutation",
+            "Partition Proceeding",
+            "Attestation of Registries",
         ],
         accent=GREEN_DARK,
     )
