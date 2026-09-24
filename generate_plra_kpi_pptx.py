@@ -240,11 +240,12 @@ def slide_data(prs):
         s,
         0.55,
         "Static Data",
-        "Entered by field officers via the KPI portal",
+        "Portal entries and attached department files",
         [
             "Data submitted by field persons (DC, ADCR, AC, and other ranks)",
             "Captured through the KPI portal and stored in the database",
             "Maintained and reported Division-wise, District-wise, and Tehsil-wise",
+            "Attached departments data received in Excel and PDF form",
         ],
         accent=GREEN,
     )
@@ -326,8 +327,10 @@ def slide_status(prs):
             ("•  User Manual  — End-user operational guide", 13, False, BLACK),
             ("•  Project Plan  — with clear module-wise man-hour estimates", 13, False, BLACK),
             ("", 6, False, WHITE),
-            ("Once the complete project plan and documents are received, work on the system will commence,", 12, False, GRAY),
-            ("following a dynamic approach by obtaining data through the developed APIs.", 12, False, GRAY),
+            ("Once the complete project plan and documents are received, work on the system will commence.", 12, False, GRAY),
+            ("", 4, False, WHITE),
+            ("Dynamic Data Target: Develop the APIs, integrate them with our system to receive data", 12, True, GREEN_DARK),
+            ("dynamically, and store the received data in the database.", 12, True, GREEN_DARK),
         ],
     )
 
